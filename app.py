@@ -17,9 +17,9 @@ col1, col2, col3 = st.columns(3)
 with col1:
     students_file = st.file_uploader("🎒 Students File", type=["xlsx", "xls"], key="students")
 with col2:
-    adults_file = st.file_uploader("👪 Adults / Family File", type=["xlsx", "xls"], key="adults")
+    adults_file = st.file_uploader("👪 Adults File", type=["xlsx", "xls"], key="adults")
 with col3:
-    all_file = st.file_uploader("📋 All Sites File", type=["xlsx", "xls"], key="all")
+    all_file = st.file_uploader("📋 Grant Level File", type=["xlsx", "xls"], key="all")
 
 st.divider()
 
