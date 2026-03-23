@@ -101,7 +101,7 @@ if st.button("🚀 Generate Report", disabled=not all_uploaded, type="primary", 
 
             daily_site_att['Total'] = daily_site_att['Total'].astype(int)
             daily_site_att = daily_site_att.rename(columns={'Total': 'Avg. # of Students Per Day'})
-            df_totals.insert(2, 'Avg. # of Students Per Day', daily_site_att['Avg. # of Students Per Day'].values)
+            df_totals.insert(3, 'Avg. # of Students Per Day', daily_site_att['Avg. # of Students Per Day'].values)
 
             school_names = [
                 row['Site'] for _, row in df_part_by_hour.iterrows()
