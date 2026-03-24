@@ -39,7 +39,7 @@ with col_remove:
         st.session_state.num_sites -= 1
 
 target_values = []
-defaults = [150, 200, 100]
+defaults = [152, 200, 100]
 for i in range(st.session_state.num_sites):
     default = defaults[i] if i < len(defaults) else 100
     val = st.number_input(f"Site {i+1} — Target # of students", min_value=1, value=default, key=f"target_{i}")
