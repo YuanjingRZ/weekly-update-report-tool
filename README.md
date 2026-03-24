@@ -23,7 +23,7 @@ A web app for generating weekly AfterSchool21 data update reports — no coding 
 
    | File | Adult Filter Setting | Used As |
    |---|---|---|
-   | All Sites file | **Omit** | `all_sheets` |
+   | Grant Level file | **Omit** | `all_sheets` |
    | Adults/Family file | **Yes** | `adults_sheets` |
    | Students file | **No** | `students_sheets` |
 
@@ -39,7 +39,7 @@ Go to: [https://weekly-update-report-tool-cbkr4ex88oea46afxbc6tf.streamlit.app/]
 Upload your three downloaded Excel files into the correct slots:
 - 🎒 **Students File** → the file downloaded with Adult = "No"
 - 👪 **Adults / Family File** → the file downloaded with Adult = "Yes"
-- 📋 **All Sites File** → the file downloaded with Adult = "Omit"
+- 📋 **Grant Level File** → the file downloaded with Adult = "Omit"
 
 #### Step 2.2 — Fill in Program Info & Targets
 - Enter the **Program / District Name** and **Report Date**
