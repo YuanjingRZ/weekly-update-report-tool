@@ -66,7 +66,7 @@ if st.button("🚀 Generate Report", disabled=not all_uploaded, type="primary", 
             # ── Student Summary Statistics ────────────────────────────────────
             st.write("🍀 Processing Student Summary Statistics…")
 
-            df_part_by_hour = students_sheets['Participants By Hour Band']
+            df_part_by_hour = students_sheets['Participants By Hour Band - Arc']
             df_part_by_hour.columns = df_part_by_hour.iloc[4]
             df_part_by_hour = df_part_by_hour.iloc[5:].reset_index(drop=True)
 
@@ -127,7 +127,7 @@ if st.button("🚀 Generate Report", disabled=not all_uploaded, type="primary", 
 
             # ── Family Component ──────────────────────────────────────────────
             st.write("🌷 Processing Family Component…")
-            df_hours = pd.read_excel(io.BytesIO(adults_bytes), sheet_name='Participant Attendance Hours', skiprows=2)
+            df_hours = pd.read_excel(io.BytesIO(adults_bytes), sheet_name='Participant Attendance Hours - ', skiprows=2)
             df_hours['HoursPresent'] = pd.to_numeric(df_hours['HoursPresent'], errors='coerce')
             df_hours['ParticipantId'] = df_hours['ParticipantId'].astype(str).str.replace(r'\.0$', '', regex=True)
             df_active = df_hours[(df_hours['HoursPresent'] > 0) & (df_hours['ParticipantId'].str.len() != 9)]
