@@ -57,27 +57,11 @@ st.info("Do you want to highlight the **ParticipantID** or **State ParticipantID
 col_pid, col_spid = st.columns(2)
 with col_pid:
     highlight_pid = st.checkbox("Highlight ParticipantID", value=False)
-    pid_color = st.color_picker("ParticipantID color", value="#FFFF00", disabled=not highlight_pid)
 with col_spid:
     highlight_spid = st.checkbox("Highlight State ParticipantID", value=False)
-    spid_color = st.color_picker("State ParticipantID color", value="#90EE90", disabled=not highlight_spid)
 
-st.divider()
-
-# ── Step 2.5: Participant ID Highlight Options ────────────────────────────────
-st.subheader("Step 2.5 · Highlight Participant IDs (Optional)")
-st.info(
-    "Choose whether to highlight **ParticipantID** or **State ParticipantID** columns "
-    "in the *Total Missing Info* sheet of your report."
-)
-
-col_pid, col_spid = st.columns(2)
-with col_pid:
-    highlight_pid = st.checkbox("Highlight **ParticipantID**", value=False)
-    pid_color = st.color_picker("ParticipantID highlight color", value="#FFFF00", disabled=not highlight_pid)
-with col_spid:
-    highlight_spid = st.checkbox("Highlight **State ParticipantID**", value=False)
-    spid_color = st.color_picker("State ParticipantID highlight color", value="#90EE90", disabled=not highlight_spid)
+pid_color = "#FFFF00"
+spid_color = "#90EE90"
 
 st.divider()
 
