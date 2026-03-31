@@ -301,3 +301,64 @@ if st.session_state.get("report_ready"):
         use_container_width=True,
         type="primary",
     )
+
+    st.divider()
+
+    # ── Step 4: Highlight Participant IDs ─────────────────────────────────────
+    st.subheader("Step 4 · Highlight Participant IDs (Optional)")
+    st.info(
+        "Want to pull out and highlight **ParticipantID** or **State ParticipantID** columns "
+        "in the *Total Missing Info* sheet? Pick your options below and download a highlighted version."
+    )
+
+    col_pid, col_spid = st.columns(2)
+    with col_pid:
+        highlight_pid = st.checkbox("Highlight **ParticipantID**", value=False)
+        pid_color = st.color_picker("ParticipantID highlight color", value="#FFFF00", disabled=not highlight_pid)
+    with col_spid:
+        highlight_spid = st.checkbox("Highlight **State ParticipantID**", value=False)
+        spid_color = st.color_picker("State ParticipantID highlight color", value="#90EE90", disabled=not highlight_spid)
+
+    if highlight_pid or highlight_spid:
+        if st.button("✨ Apply Highlights & Download", type="primary", use_container_width=True):
+            try:
+                wb2 = load_workbook(io.BytesIO(st.session_state.output_bytes))
+                ws_tmi = wb2["Total Missing Info"]
+                header_tmi = {cell.value: cell.column for cell in ws_tmi[1]}
+                max_row = ws_tmi.max_row
+
+                def hex_to_openpyxl(hex_color):
+                    """Convert #RRGGBB to openpyxl RRGGBB (no #)."""
+                    return hex_color.lstrip("#").upper()
+
+                if highlight_pid and "ParticipantID" in header_tmi:
+                    fill_pid = PatternFill("solid",
+                                          start_color=hex_to_openpyxl(pid_color),
+                                          end_color=hex_to_openpyxl(pid_color))
+                    col_idx = header_tmi["ParticipantID"]
+                    for r in range(2, max_row + 1):
+                        ws_tmi.cell(row=r, column=col_idx).fill = fill_pid
+
+                if highlight_spid and "State ParticipantID" in header_tmi:
+                    fill_spid = PatternFill("solid",
+                                           start_color=hex_to_openpyxl(spid_color),
+                                           end_color=hex_to_openpyxl(spid_color))
+                    col_idx = header_tmi["State ParticipantID"]
+                    for r in range(2, max_row + 1):
+                        ws_tmi.cell(row=r, column=col_idx).fill = fill_spid
+
+                highlighted_buffer = io.BytesIO()
+                wb2.save(highlighted_buffer)
+                highlighted_buffer.seek(0)
+
+                st.download_button(
+                    label="⬇️ Download Highlighted Report",
+                    data=highlighted_buffer.read(),
+                    file_name="Weekly_Update_Report_Highlighted.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    use_container_width=True,
+                )
+            except Exception as e:
+                st.error(f"Could not apply highlights: {e}")
+    else:
+        st.caption("☝️ Check at least one option above to enable the highlight download.")
