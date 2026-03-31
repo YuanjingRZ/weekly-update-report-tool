@@ -255,7 +255,7 @@ if st.button("🚀 Generate Report", disabled=not all_uploaded, type="primary", 
                 m = pd.merge(m, df_att[df_att['Site'] == site],
                              on=['Site', 'Activity', 'Session'], how='outer')
                 m = m[~(m['Session Start Date'] >= today)].drop(columns=['Session Start Date'], errors='ignore')
-                m = m.fillna('-').sort_values(['Activity', 'Session']).reset_index(drop=True)
+                m = m.sort_values(['Activity', 'Session']).reset_index(drop=True)
                 site_tables[site] = m
 
             # ── Write Excel ───────────────────────────────────────────────────
