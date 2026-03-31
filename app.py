@@ -59,18 +59,18 @@ if st.button("🚀 Generate Report", disabled=not all_uploaded, type="primary", 
 
         try:
             st.write("📂 Reading uploaded files…")
-            students_sheets = pd.read_excel(students_file, sheet_name=None)
-            adults_bytes    = adults_file.read()
-            all_bytes       = all_file.read()
+            students_xl  = pd.ExcelFile(students_file)
+            adults_bytes = adults_file.read()
+            all_bytes    = all_file.read()
 
             # ── Student Summary Statistics ────────────────────────────────────
             st.write("🍀 Processing Student Summary Statistics…")
 
-            df_part_by_hour = students_sheets['Participants By Hour Band - Arc']
+            df_part_by_hour = students_xl.parse(1)  # [1] Participants By Hour Band
             df_part_by_hour.columns = df_part_by_hour.iloc[4]
             df_part_by_hour = df_part_by_hour.iloc[5:].reset_index(drop=True)
 
-            daily_site_att = students_sheets['Daily Site Attendance Summary']
+            daily_site_att = students_xl.parse(0)  # [0] Daily Site Attendance Summary
             daily_site_att.columns = daily_site_att.iloc[2]
             daily_site_att = daily_site_att.iloc[3:]
             daily_site_att.columns.name = None
@@ -127,7 +127,7 @@ if st.button("🚀 Generate Report", disabled=not all_uploaded, type="primary", 
 
             # ── Family Component ──────────────────────────────────────────────
             st.write("🌷 Processing Family Component…")
-            df_hours = pd.read_excel(io.BytesIO(adults_bytes), sheet_name='Participant Attendance Hours - ', skiprows=2)
+            df_hours = pd.read_excel(io.BytesIO(adults_bytes), sheet_name=2, skiprows=2)  # [2] Participant Attendance Hours
             df_hours['HoursPresent'] = pd.to_numeric(df_hours['HoursPresent'], errors='coerce')
             df_hours['ParticipantId'] = df_hours['ParticipantId'].astype(str).str.replace(r'\.0$', '', regex=True)
             df_active = df_hours[(df_hours['HoursPresent'] > 0) & (df_hours['ParticipantId'].str.len() != 9)]
@@ -137,7 +137,7 @@ if st.button("🚀 Generate Report", disabled=not all_uploaded, type="primary", 
 
             # ── Demographics / Missing ────────────────────────────────────────
             st.write("🌸 Processing Participant Demographics…")
-            df_part_demo = students_sheets['Participant Demographics']
+            df_part_demo = students_xl.parse(4)  # [4] Participant Demographics
             df_part_demo.columns = df_part_demo.iloc[2]
             df_part_demo = df_part_demo.iloc[3:].reset_index(drop=True)
 
@@ -201,11 +201,11 @@ if st.button("🚀 Generate Report", disabled=not all_uploaded, type="primary", 
             # ── Site Summary Report ───────────────────────────────────────────
             st.write("🪻 Building Site Summary Report…")
             all_io = io.BytesIO(all_bytes)
-            df_act = pd.read_excel(all_io, sheet_name='Activity-Session Details', skiprows=2)
+            df_act = pd.read_excel(all_io, sheet_name=3, skiprows=2)  # [3] Activity-Session Details
             all_io.seek(0)
-            df_enr = pd.read_excel(all_io, sheet_name='Session Enrollment by Session', skiprows=2)
+            df_enr = pd.read_excel(all_io, sheet_name=5, skiprows=2)  # [5] Session Enrollment by Session
             all_io.seek(0)
-            df_att = pd.read_excel(all_io, sheet_name='Daily Activity Attendance Summa', skiprows=4)
+            df_att = pd.read_excel(all_io, sheet_name=6, skiprows=4)  # [6] Daily Activity Attendance Summa
 
             cols_act = ['Site', 'Activity', 'Session', 'Days Scheduled', 'Session Start Date']
             df_act = df_act[cols_act].copy()
