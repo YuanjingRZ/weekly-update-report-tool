@@ -165,10 +165,10 @@ if st.button("🚀 Generate Report", disabled=not all_uploaded, type="primary", 
                 vs = spid.str.match(r'^[12]\d{8}$')
                 subset_fg['ParticipantID_missing']       = (~vp).astype(int)
                 subset_fg['State ParticipantID_missing'] = (~vs).astype(int)
-                subset_fg['OSIS_missing']                = (~((pid == spid) & vp & vs)).astype(int)
+                subset_fg['Both_ID_mismatch']                = (~((pid == spid) & vp & vs)).astype(int)
                 missing_cols = (
                     [col + '_missing' for col in columns_to_check]
-                    + ['ParticipantID_missing', 'State ParticipantID_missing', 'OSIS_missing']
+                    + ['ParticipantID_missing', 'State ParticipantID_missing', 'Both_ID_mismatch']
                 )
                 pivot = subset_fg.groupby(category_col)[missing_cols].sum().reset_index()
                 total_r = pd.DataFrame(pivot[missing_cols].sum()).T
@@ -189,7 +189,7 @@ if st.button("🚀 Generate Report", disabled=not all_uploaded, type="primary", 
                         all_mf[col + '_missing'] = (all_mf[col].isna() | nem).astype(int)
                 all_mf['ParticipantID_missing']       = (~vpa).astype(int)
                 all_mf['State ParticipantID_missing'] = (~vsa).astype(int)
-                all_mf['OSIS_missing']                = (~((pid_a == spid_a) & vpa & vsa)).astype(int)
+                all_mf['Both_ID_mismatch']                = (~((pid_a == spid_a) & vpa & vsa)).astype(int)
                 dob_parsed = pd.to_datetime(all_mf['Date Of Birth'], errors='coerce')
                 all_mf['DOB_too_young'] = (dob_parsed.dt.year > 2023).astype(int)
                 flag_cols2 = [col + '_missing' for col in columns_to_check] + ['ParticipantID_missing']
