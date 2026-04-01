@@ -255,7 +255,7 @@ if st.button("🚀 Generate Report", disabled=not all_uploaded, type="primary", 
                 m = pd.merge(m, df_att[df_att['Site'] == site],
                              on=['Site', 'Activity', 'Session'], how='outer')
                 m = m[~(m['Session Start Date'] >= today)].drop(columns=['Session Start Date'], errors='ignore')
-                m = m.fillna('-').sort_values(['Activity', 'Session']).reset_index(drop=True)
+                m = m.sort_values(['Activity', 'Session']).reset_index(drop=True)
                 site_tables[site] = m
 
             # ── Write Excel ───────────────────────────────────────────────────
@@ -314,6 +314,16 @@ if st.button("🚀 Generate Report", disabled=not all_uploaded, type="primary", 
                                         end_color=hex_to_openpyxl(spid_color))
                 for r in range(2, max_row_tmi + 1):
                     ws_tmi.cell(row=r, column=header_tmi["State ParticipantID"]).fill = fill_spid
+
+            # Highlight missing (empty) cells in site summary sheets
+            for site_name, site_df in site_tables.items():
+                safe = str(site_name)[:31].replace(':', '').replace('/', '').replace('\\', '').replace('?', '').replace('*', '')
+                if safe in wb.sheetnames:
+                    ws_site = wb[safe]
+                    for row in ws_site.iter_rows(min_row=2):
+                        for cell in row:
+                            if cell.value is None or cell.value == '':
+                                cell.fill = red_fill
 
             final_buffer = io.BytesIO()
             wb.save(final_buffer)
