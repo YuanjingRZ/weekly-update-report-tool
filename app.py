@@ -335,11 +335,12 @@ if st.button("🚀 Generate Report", disabled=not all_uploaded, type="primary", 
 
             # ── Copy raw sheets from source files ─────────────────────────────
             st.write("📋 Copying source sheets…")
-            def copy_sheet(src_ws, dest_wb, dest_name):
+            def copy_sheet(src_ws, dest_wb, dest_name, skip_rows=0):
                 dest_ws = dest_wb.create_sheet(title=dest_name)
-                for row in src_ws.iter_rows():
+                for row in src_ws.iter_rows(min_row=skip_rows + 1):
                     for cell in row:
-                        dest_cell = dest_ws.cell(row=cell.row, column=cell.column, value=cell.value)
+                        dest_row = cell.row - skip_rows
+                        dest_cell = dest_ws.cell(row=dest_row, column=cell.column, value=cell.value)
                         if cell.has_style:
                             dest_cell.font = copy(cell.font)
                             dest_cell.border = copy(cell.border)
@@ -350,14 +351,15 @@ if st.button("🚀 Generate Report", disabled=not all_uploaded, type="primary", 
                     dest_ws.column_dimensions[key].width = dim.width
                     dest_ws.column_dimensions[key].hidden = dim.hidden
                 for key, dim in src_ws.row_dimensions.items():
-                    dest_ws.row_dimensions[key].height = dim.height
-                    dest_ws.row_dimensions[key].hidden = dim.hidden
+                    if dim.index > skip_rows:
+                        dest_ws.row_dimensions[dim.index - skip_rows].height = dim.height
+                        dest_ws.row_dimensions[dim.index - skip_rows].hidden = dim.hidden
 
             students_wb_src = load_workbook(io.BytesIO(students_bytes))
             adults_wb_src   = load_workbook(io.BytesIO(adults_bytes))
-            copy_sheet(students_wb_src.worksheets[1], wb, 'Students - Participants By Hour')
-            copy_sheet(adults_wb_src.worksheets[1],   wb, 'Adults - Participants By Hour')
-            copy_sheet(students_wb_src.worksheets[4], wb, 'Participant Demographics')
+            copy_sheet(students_wb_src.worksheets[1], wb, 'Students - Participants By Hour', skip_rows=4)
+            copy_sheet(adults_wb_src.worksheets[1],   wb, 'Adults - Participants By Hour',   skip_rows=4)
+            copy_sheet(students_wb_src.worksheets[4], wb, 'Participant Demographics',         skip_rows=3)
 
             # ── Apply Arial Narrow 10pt font to all cells ─────────────────────
             arial_narrow = Font(name='Arial Narrow', size=10)
