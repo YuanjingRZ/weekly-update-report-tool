@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import io
+from datetime import date
 from openpyxl import load_workbook
 from openpyxl.styles import PatternFill, Font
 
@@ -352,7 +353,8 @@ if st.button("🚀 Generate Report", disabled=not all_uploaded, type="primary", 
 
 if st.session_state.get("report_ready"):
     safe_institution = institution_name.strip().replace(' ', '_') or 'Institution'
-    output_filename = f"data_weeklyupdates_{safe_institution}.xlsx"
+    today_str = date.today().strftime('%Y%m%d')
+    output_filename = f"{today_str}_weeklyupdates_{safe_institution}.xlsx"
     st.success("🎉 Your report is ready!")
     st.download_button(
         label=f"⬇️ Download {output_filename}",
