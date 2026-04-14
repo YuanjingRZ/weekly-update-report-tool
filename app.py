@@ -2,8 +2,9 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import io
+from datetime import date
 from openpyxl import load_workbook
-from openpyxl.styles import PatternFill
+from openpyxl.styles import PatternFill, Font
 
 
 #adding comments to test git branch functionality
@@ -23,6 +24,11 @@ with col2:
     adults_file = st.file_uploader("👪 Adults File", type=["xlsx", "xls"], key="adults")
 with col3:
     all_file = st.file_uploader("📋 Grant Level File", type=["xlsx", "xls"], key="all")
+
+st.divider()
+
+# ── Step 1.5: Institution Name ────────────────────────────────────────────────
+institution_name = st.text_input("🏫 Institution Name (used in output filename)", value="Institution")
 
 st.divider()
 
@@ -325,6 +331,13 @@ if st.button("🚀 Generate Report", disabled=not all_uploaded, type="primary", 
                             if cell.value is None or cell.value == '':
                                 cell.fill = red_fill
 
+            # ── Apply Arial Narrow 10pt font to all cells ─────────────────────
+            arial_narrow = Font(name='Arial Narrow', size=10)
+            for ws_name in wb.sheetnames:
+                for row in wb[ws_name].iter_rows():
+                    for cell in row:
+                        cell.font = arial_narrow
+
             final_buffer = io.BytesIO()
             wb.save(final_buffer)
             final_buffer.seek(0)
@@ -339,11 +352,14 @@ if st.button("🚀 Generate Report", disabled=not all_uploaded, type="primary", 
             st.session_state.report_ready = False
 
 if st.session_state.get("report_ready"):
+    safe_institution = institution_name.strip().replace(' ', '_') or 'Institution'
+    today_str = date.today().strftime('%Y%m%d')
+    output_filename = f"{today_str}_weeklyupdates_{safe_institution}.xlsx"
     st.success("🎉 Your report is ready!")
     st.download_button(
-        label="⬇️ Download Weekly_Update_Report.xlsx",
+        label=f"⬇️ Download {output_filename}",
         data=st.session_state.output_bytes,
-        file_name="Weekly_Update_Report.xlsx",
+        file_name=output_filename,
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         use_container_width=True,
         type="primary",
