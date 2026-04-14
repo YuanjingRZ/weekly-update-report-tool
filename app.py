@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import io
 from datetime import date
+from copy import copy
 from openpyxl import load_workbook
 from openpyxl.styles import PatternFill, Font
 
@@ -83,7 +84,8 @@ if st.button("🚀 Generate Report", disabled=not all_uploaded, type="primary", 
 
         try:
             st.write("📂 Reading uploaded files…")
-            students_xl  = pd.ExcelFile(students_file)
+            students_bytes = students_file.read()
+            students_xl  = pd.ExcelFile(io.BytesIO(students_bytes))
             adults_bytes = adults_file.read()
             all_bytes    = all_file.read()
 
@@ -330,6 +332,32 @@ if st.button("🚀 Generate Report", disabled=not all_uploaded, type="primary", 
                         for cell in row:
                             if cell.value is None or cell.value == '':
                                 cell.fill = red_fill
+
+            # ── Copy raw sheets from source files ─────────────────────────────
+            st.write("📋 Copying source sheets…")
+            def copy_sheet(src_ws, dest_wb, dest_name):
+                dest_ws = dest_wb.create_sheet(title=dest_name)
+                for row in src_ws.iter_rows():
+                    for cell in row:
+                        dest_cell = dest_ws.cell(row=cell.row, column=cell.column, value=cell.value)
+                        if cell.has_style:
+                            dest_cell.font = copy(cell.font)
+                            dest_cell.border = copy(cell.border)
+                            dest_cell.fill = copy(cell.fill)
+                            dest_cell.number_format = cell.number_format
+                            dest_cell.alignment = copy(cell.alignment)
+                for key, dim in src_ws.column_dimensions.items():
+                    dest_ws.column_dimensions[key].width = dim.width
+                    dest_ws.column_dimensions[key].hidden = dim.hidden
+                for key, dim in src_ws.row_dimensions.items():
+                    dest_ws.row_dimensions[key].height = dim.height
+                    dest_ws.row_dimensions[key].hidden = dim.hidden
+
+            students_wb_src = load_workbook(io.BytesIO(students_bytes))
+            adults_wb_src   = load_workbook(io.BytesIO(adults_bytes))
+            copy_sheet(students_wb_src.worksheets[1], wb, 'Students - Participants By Hour')
+            copy_sheet(adults_wb_src.worksheets[1],   wb, 'Adults - Participants By Hour')
+            copy_sheet(students_wb_src.worksheets[4], wb, 'Participant Demographics')
 
             # ── Apply Arial Narrow 10pt font to all cells ─────────────────────
             arial_narrow = Font(name='Arial Narrow', size=10)
