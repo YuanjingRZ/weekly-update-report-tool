@@ -185,13 +185,12 @@ if st.button("🚀 Generate Report", disabled=not all_uploaded, type="primary", 
                 pid  = df.loc[subset_fg.index, 'ParticipantID'].astype(str).str.strip()
                 spid = df.loc[subset_fg.index, 'State ParticipantID'].astype(str).str.strip()
                 vp = pid.str.match(r'^[12]\d{8}$')
-                vs = spid.str.match(r'^[12]\d{8}$')
+                vs = spid.str.match(r'^\d{10}$')
                 subset_fg['ParticipantID_missing']       = (~vp).astype(int)
                 subset_fg['State ParticipantID_missing'] = (~vs).astype(int)
-                subset_fg['Both_ID_mismatch']                = (~((pid == spid) & vp & vs)).astype(int)
                 missing_cols = (
                     [col + '_missing' for col in columns_to_check]
-                    + ['ParticipantID_missing', 'State ParticipantID_missing', 'Both_ID_mismatch']
+                    + ['ParticipantID_missing', 'State ParticipantID_missing']
                 )
                 pivot = subset_fg.groupby(category_col)[missing_cols].sum().reset_index()
                 total_r = pd.DataFrame(pivot[missing_cols].sum()).T
@@ -201,7 +200,7 @@ if st.button("🚀 Generate Report", disabled=not all_uploaded, type="primary", 
                 pid_a  = all_mf['ParticipantID'].astype(str).str.strip()
                 spid_a = all_mf['State ParticipantID'].astype(str).str.strip()
                 vpa = pid_a.str.match(r'^[12]\d{8}$')
-                vsa = spid_a.str.match(r'^[12]\d{8}$')
+                vsa = spid_a.str.match(r'^\d{10}$')
                 for col in columns_to_check:
                     cleaned = all_mf[col].astype(str).str.strip()
                     nem = cleaned.str.lower() == 'not entered'
@@ -212,12 +211,19 @@ if st.button("🚀 Generate Report", disabled=not all_uploaded, type="primary", 
                         all_mf[col + '_missing'] = (all_mf[col].isna() | nem).astype(int)
                 all_mf['ParticipantID_missing']       = (~vpa).astype(int)
                 all_mf['State ParticipantID_missing'] = (~vsa).astype(int)
-                all_mf['Both_ID_mismatch']                = (~((pid_a == spid_a) & vpa & vsa)).astype(int)
                 dob_parsed = pd.to_datetime(all_mf['Date Of Birth'], errors='coerce')
-                all_mf['DOB_too_young'] = (dob_parsed.dt.year > 2023).astype(int)
-                flag_cols2 = [col + '_missing' for col in columns_to_check] + ['ParticipantID_missing']
+                all_mf['DOB_too_young'] = ((dob_parsed.dt.year > 2023) | (dob_parsed.dt.year < 2004)).astype(int)
+                flag_cols2 = [col + '_missing' for col in columns_to_check] + ['ParticipantID_missing', 'DOB_too_young']
                 total_missing_rows = all_mf[all_mf[flag_cols2].sum(axis=1) > 0].copy()
                 young_dob_rows = all_mf[all_mf['DOB_too_young'] == 1].copy()
+                dob_young_counts = all_mf.groupby(category_col)['DOB_too_young'].sum()
+                pivot = pivot.set_index('Site')
+                pivot['Date Of Birth_missing'] += pivot.index.map(dob_young_counts).fillna(0).astype(int)
+                pivot = pivot.reset_index()
+                pivot = pivot.rename(columns={
+                    'Date Of Birth_missing': 'DOB_missing',
+                    'State ParticipantID_missing': '10digit_State ParticipantID_missing'
+                })[['Site', 'DOB_missing', 'ParticipantID_missing', 'Grade Level_missing', 'Gender_missing', '10digit_State ParticipantID_missing']]
                 return pivot, missing_site_rows, total_missing_rows, flag_cols2, young_dob_rows
 
             columns_of_interest = ['Date Of Birth', 'Grade Level', 'Gender']
@@ -263,21 +269,24 @@ if st.button("🚀 Generate Report", disabled=not all_uploaded, type="primary", 
                 m = pd.merge(m, df_att[df_att['Site'] == site],
                              on=['Site', 'Activity', 'Session'], how='outer')
                 m = m[~(m['Session Start Date'] >= today)].drop(columns=['Session Start Date'], errors='ignore')
-                m = m.sort_values(['Session']).reset_index(drop=True)
+                m = m.fillna("-")
+                m = m.sort_values(['Activity', 'Session']).reset_index(drop=True)
                 site_tables[site] = m
 
             # ── Write Excel ───────────────────────────────────────────────────
             st.write("🌈 Writing Excel report…")
+            hide_cols = {'Race/Ethnicity', 'English Learner Status', 'Lunch Status', 'Special Education Status', 'IDEA Disability Type'}
             output_buffer = io.BytesIO()
             with pd.ExcelWriter(output_buffer, engine='openpyxl') as writer:
-                df_totals.to_excel(writer, sheet_name='Student Statistics', index=False)
-                result.to_excel(writer, sheet_name='Parents Served Summary', index=False)
-                missing_summary.to_excel(writer, sheet_name='Missing Summary', index=False)
-                missing_site_rows.to_excel(writer, sheet_name='Missing Site Info', index=False)
-                display_cols = [c for c in total_missing_rows.columns if not c.endswith('_missing') and c != 'DOB_too_young']
-                total_missing_rows[display_cols].to_excel(writer, sheet_name='Total Missing Info', index=False)
+                df_totals.to_excel(writer, sheet_name='Student Summary Statistics', index=False)
+                result.to_excel(writer, sheet_name='Family Component Summary', index=False)
+                missing_summary.to_excel(writer, sheet_name='Missing student & staff Summary', index=False)
+                display_cols = [c for c in total_missing_rows.columns if not c.endswith('_missing') and c != 'DOB_too_young' and c not in hide_cols]
+                for site, group in total_missing_rows.groupby('Site'):
+                    safe_name = ('Missing - ' + str(site))[:31]
+                    group[display_cols].to_excel(writer, sheet_name=safe_name, index=False)
                 young_dc = [c for c in young_dob_rows.columns if not c.endswith('_missing') and c != 'DOB_too_young']
-                young_dob_rows[young_dc].to_excel(writer, sheet_name='Young DOB', index=False)
+                young_dob_rows[young_dc].to_excel(writer, sheet_name='Pull out - Young DOB', index=False)
                 for site_name, final_df in site_tables.items():
                     safe = str(site_name)[:31].replace(':', '').replace('/', '').replace('\\', '').replace('?', '').replace('*', '')
                     final_df.to_excel(writer, sheet_name=safe, index=False)
@@ -288,13 +297,17 @@ if st.button("🚀 Generate Report", disabled=not all_uploaded, type="primary", 
             red_fill  = PatternFill('solid', start_color='FF9999', end_color='FF9999')
             blue_fill = PatternFill('solid', start_color='9999FF', end_color='9999FF')
             flag_to_original = {fc: fc[:-len('_missing')] for fc in flag_cols if fc.endswith('_missing')}
-            ws = wb['Total Missing Info']
-            header = {cell.value: cell.column for cell in ws[1]}
-            for row_idx, (_, row) in enumerate(total_missing_rows.iterrows(), start=2):
-                for flag_col, orig_col in flag_to_original.items():
-                    if orig_col in header and row.get(flag_col, 0) == 1:
-                        ws.cell(row=row_idx, column=header[orig_col]).fill = red_fill
-            ws2 = wb['Young DOB']
+            for site, group in total_missing_rows.groupby('Site'):
+                sheet_name = ('Missing - ' + str(site))[:31]
+                if sheet_name not in wb.sheetnames:
+                    continue
+                ws = wb[sheet_name]
+                header = {cell.value: cell.column for cell in ws[1]}
+                for row_idx, (_, row) in enumerate(group.iterrows(), start=2):
+                    for flag_col, orig_col in flag_to_original.items():
+                        if orig_col in header and row.get(flag_col, 0) == 1:
+                            ws.cell(row=row_idx, column=header[orig_col]).fill = red_fill
+            ws2 = wb['Pull out - Young DOB']
             header2 = {cell.value: cell.column for cell in ws2[1]}
             if 'Date Of Birth' in header2:
                 dob_col_idx = header2['Date Of Birth']
@@ -305,33 +318,25 @@ if st.button("🚀 Generate Report", disabled=not all_uploaded, type="primary", 
             def hex_to_openpyxl(hex_color):
                 return hex_color.lstrip("#").upper()
 
-            ws_tmi = wb['Total Missing Info']
-            header_tmi = {cell.value: cell.column for cell in ws_tmi[1]}
-            max_row_tmi = ws_tmi.max_row
-
-            if highlight_pid and "ParticipantID" in header_tmi:
-                fill_pid = PatternFill("solid",
-                                       start_color=hex_to_openpyxl(pid_color),
-                                       end_color=hex_to_openpyxl(pid_color))
-                for r in range(2, max_row_tmi + 1):
-                    ws_tmi.cell(row=r, column=header_tmi["ParticipantID"]).fill = fill_pid
-
-            if highlight_spid and "State ParticipantID" in header_tmi:
-                fill_spid = PatternFill("solid",
-                                        start_color=hex_to_openpyxl(spid_color),
-                                        end_color=hex_to_openpyxl(spid_color))
-                for r in range(2, max_row_tmi + 1):
-                    ws_tmi.cell(row=r, column=header_tmi["State ParticipantID"]).fill = fill_spid
-
-            # Highlight missing (empty) cells in site summary sheets
-            for site_name, site_df in site_tables.items():
-                safe = str(site_name)[:31].replace(':', '').replace('/', '').replace('\\', '').replace('?', '').replace('*', '')
-                if safe in wb.sheetnames:
-                    ws_site = wb[safe]
-                    for row in ws_site.iter_rows(min_row=2):
-                        for cell in row:
-                            if cell.value is None or cell.value == '':
-                                cell.fill = red_fill
+            for site, group in total_missing_rows.groupby('Site'):
+                sheet_name = ('Missing - ' + str(site))[:31]
+                if sheet_name not in wb.sheetnames:
+                    continue
+                ws_miss = wb[sheet_name]
+                header_miss = {cell.value: cell.column for cell in ws_miss[1]}
+                max_row_miss = ws_miss.max_row
+                if highlight_pid and "ParticipantID" in header_miss:
+                    fill_pid = PatternFill("solid",
+                                           start_color=hex_to_openpyxl(pid_color),
+                                           end_color=hex_to_openpyxl(pid_color))
+                    for r in range(2, max_row_miss + 1):
+                        ws_miss.cell(row=r, column=header_miss["ParticipantID"]).fill = fill_pid
+                if highlight_spid and "State ParticipantID" in header_miss:
+                    fill_spid = PatternFill("solid",
+                                            start_color=hex_to_openpyxl(spid_color),
+                                            end_color=hex_to_openpyxl(spid_color))
+                    for r in range(2, max_row_miss + 1):
+                        ws_miss.cell(row=r, column=header_miss["State ParticipantID"]).fill = fill_spid
 
             # ── Copy raw sheets from source files ─────────────────────────────
             st.write("📋 Copying source sheets…")
