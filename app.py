@@ -300,6 +300,22 @@ if st.button("🚀 Generate Report", disabled=not all_uploaded, type="primary", 
                 for row_idx in range(2, len(young_dob_rows) + 2):
                     ws2.cell(row=row_idx, column=dob_col_idx).fill = blue_fill
 
+            # ── Highlight missing cells in site summary sheets ────────────────
+            site_numeric_cols = ['Days Scheduled', 'Enrolled Participant', 'Average Daily Attendance']
+            for site_name in site_tables:
+                safe = str(site_name)[:31].replace(':', '').replace('/', '').replace('\\', '').replace('?', '').replace('*', '')
+                if safe not in wb.sheetnames:
+                    continue
+                ws_site = wb[safe]
+                header_site = {cell.value: cell.column for cell in ws_site[1]}
+                for col_name in site_numeric_cols:
+                    if col_name not in header_site:
+                        continue
+                    col_idx = header_site[col_name]
+                    for row_idx in range(2, ws_site.max_row + 1):
+                        if ws_site.cell(row=row_idx, column=col_idx).value == '-':
+                            ws_site.cell(row=row_idx, column=col_idx).fill = red_fill
+
             # ── Copy raw sheets from source files ─────────────────────────────
             st.write("📋 Copying source sheets…")
             def copy_sheet(src_ws, dest_wb, dest_name, skip_rows=0):
