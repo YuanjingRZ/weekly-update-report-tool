@@ -57,21 +57,6 @@ for i in range(st.session_state.num_sites):
 
 st.divider()
 
-# ── Step 2.5: Highlight Participant IDs ───────────────────────────────────────
-st.subheader("Step 2.5 · Highlight Participant IDs (Optional)")
-st.info("Do you want to highlight the **ParticipantID** or **State ParticipantID** columns in the *Total Missing Info* sheet of your report?")
-
-col_pid, col_spid = st.columns(2)
-with col_pid:
-    highlight_pid = st.checkbox("Highlight ParticipantID", value=False)
-with col_spid:
-    highlight_spid = st.checkbox("Highlight State ParticipantID", value=False)
-
-pid_color = "#FFFF00"
-spid_color = "#90EE90"
-
-st.divider()
-
 # ── Step 3: Generate ──────────────────────────────────────────────────────────
 st.subheader("Step 3 · Generate Report")
 
@@ -314,30 +299,6 @@ if st.button("🚀 Generate Report", disabled=not all_uploaded, type="primary", 
                 dob_col_idx = header2['Date Of Birth']
                 for row_idx in range(2, len(young_dob_rows) + 2):
                     ws2.cell(row=row_idx, column=dob_col_idx).fill = blue_fill
-
-            # ── Optional: Highlight Participant ID columns (Step 2.5) ─────────
-            def hex_to_openpyxl(hex_color):
-                return hex_color.lstrip("#").upper()
-
-            for site, group in total_missing_rows.groupby('Site'):
-                sheet_name = ('Missing - ' + str(site))[:31]
-                if sheet_name not in wb.sheetnames:
-                    continue
-                ws_miss = wb[sheet_name]
-                header_miss = {cell.value: cell.column for cell in ws_miss[1]}
-                max_row_miss = ws_miss.max_row
-                if highlight_pid and "ParticipantID" in header_miss:
-                    fill_pid = PatternFill("solid",
-                                           start_color=hex_to_openpyxl(pid_color),
-                                           end_color=hex_to_openpyxl(pid_color))
-                    for r in range(2, max_row_miss + 1):
-                        ws_miss.cell(row=r, column=header_miss["ParticipantID"]).fill = fill_pid
-                if highlight_spid and "State ParticipantID" in header_miss:
-                    fill_spid = PatternFill("solid",
-                                            start_color=hex_to_openpyxl(spid_color),
-                                            end_color=hex_to_openpyxl(spid_color))
-                    for r in range(2, max_row_miss + 1):
-                        ws_miss.cell(row=r, column=header_miss["State ParticipantID"]).fill = fill_spid
 
             # ── Copy raw sheets from source files ─────────────────────────────
             st.write("📋 Copying source sheets…")
