@@ -281,6 +281,7 @@ if st.button("🚀 Generate Report", disabled=not all_uploaded, type="primary", 
                 df_totals.to_excel(writer, sheet_name='Student Summary Statistics', index=False)
                 result.to_excel(writer, sheet_name='Family Component Summary', index=False)
                 missing_summary.to_excel(writer, sheet_name='Missing student & staff Summary', index=False)
+                missing_site_rows.to_excel(writer, sheet_name="Pull out - Missing Site Info", index=False)
                 display_cols = [c for c in total_missing_rows.columns if not c.endswith('_missing') and c != 'DOB_too_young' and c not in hide_cols]
                 for site, group in total_missing_rows.groupby('Site'):
                     safe_name = ('Missing - ' + str(site))[:31]
