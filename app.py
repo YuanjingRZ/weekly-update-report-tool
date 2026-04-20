@@ -8,7 +8,17 @@ from openpyxl import load_workbook
 from openpyxl.styles import PatternFill, Font
 
 
-#adding comments to test git branch functionality
+# adding comments to test git branch functionality
+
+def clean_sheet_name(name, fallback="Sheet"):
+    name = str(name).strip()
+    for ch in [":", "/", "\\", "?", "*", "[", "]"]:
+        name = name.replace(ch, "")
+    name = name.strip("'")
+    if not name:
+        name = fallback
+    return name[:31]
+
 
 st.set_page_config(page_title="Weekly Update Report Tool", page_icon="📊", layout="centered")
 
@@ -70,9 +80,9 @@ if st.button("🚀 Generate Report", disabled=not all_uploaded, type="primary", 
         try:
             st.write("📂 Reading uploaded files…")
             students_bytes = students_file.read()
-            students_xl  = pd.ExcelFile(io.BytesIO(students_bytes))
+            students_xl = pd.ExcelFile(io.BytesIO(students_bytes))
             adults_bytes = adults_file.read()
-            all_bytes    = all_file.read()
+            all_bytes = all_file.read()
 
             # ── Student Summary Statistics ────────────────────────────────────
             st.write("🍀 Processing Student Summary Statistics…")
@@ -89,12 +99,12 @@ if st.button("🚀 Generate Report", disabled=not all_uploaded, type="primary", 
             daily_site_att = daily_site_att[['Total']].iloc[:-1]
             daily_site_att['Total'] = daily_site_att['Total'].str.extract(r'(\d+\.?\d*)')
 
-            all_cols    = ['0', 'Less Than 15', '15-44', '45-89', '90-179', '180-269', '270+']
+            all_cols = ['0', 'Less Than 15', '15-44', '45-89', '90-179', '180-269', '270+']
             served_cols = ['Less Than 15', '15-44', '45-89', '90-179', '180-269', '270+']
             plus15_cols = ['15-44', '45-89', '90-179', '180-269', '270+']
             plus90_cols = ['90-179', '180-269', '270+']
             existing_cols = df_part_by_hour.columns.tolist()
-            all_cols    = [c for c in all_cols    if c in existing_cols]
+            all_cols = [c for c in all_cols if c in existing_cols]
             served_cols = [c for c in served_cols if c in existing_cols]
             plus15_cols = [c for c in plus15_cols if c in existing_cols]
             plus90_cols = [c for c in plus90_cols if c in existing_cols]
@@ -104,9 +114,9 @@ if st.button("🚀 Generate Report", disabled=not all_uploaded, type="primary", 
 
             df_totals = pd.DataFrame({
                 '[Total # Enrolled]': df_sub[all_cols].sum(axis=1),
-                '[Total # Served]':   df_sub[served_cols].sum(axis=1),
-                '[Total # 15+]':      df_sub[plus15_cols].sum(axis=1),
-                '[Total # 90+]':      df_sub[plus90_cols].sum(axis=1),
+                '[Total # Served]': df_sub[served_cols].sum(axis=1),
+                '[Total # 15+]': df_sub[plus15_cols].sum(axis=1),
+                '[Total # 90+]': df_sub[plus90_cols].sum(axis=1),
             })
             df_totals.insert(0, '[Target # of students served]', target_values)
 
@@ -155,10 +165,13 @@ if st.button("🚀 Generate Report", disabled=not all_uploaded, type="primary", 
             def summarize_missing_by_school(df, columns_to_check, category_col='Site'):
                 if category_col not in df.columns:
                     raise ValueError(f'{category_col} not found in columns')
+
                 missing_site_rows = df[df[category_col].isna() | (df[category_col].astype(str).str.strip() == '')].copy()
+
                 subset = df[columns_to_check + [category_col]].copy()
                 subset_fg = subset[subset[category_col].notna()].copy()
                 subset_fg[category_col] = subset_fg[category_col].astype(str).str.title()
+
                 for col in columns_to_check:
                     cleaned = subset_fg[col].astype(str).str.strip()
                     nem = cleaned.str.lower() == 'not entered'
@@ -167,25 +180,30 @@ if st.button("🚀 Generate Report", disabled=not all_uploaded, type="primary", 
                         subset_fg[col + '_missing'] = ((~vg) | nem).astype(int)
                     else:
                         subset_fg[col + '_missing'] = (subset_fg[col].isna() | nem).astype(int)
-                pid  = df.loc[subset_fg.index, 'ParticipantID'].astype(str).str.strip()
+
+                pid = df.loc[subset_fg.index, 'ParticipantID'].astype(str).str.strip()
                 spid = df.loc[subset_fg.index, 'State ParticipantID'].astype(str).str.strip()
                 vp = pid.str.match(r'^[12]\d{8}$')
                 vs = spid.str.match(r'^\d{10}$')
-                subset_fg['ParticipantID_missing']       = (~vp).astype(int)
+                subset_fg['ParticipantID_missing'] = (~vp).astype(int)
                 subset_fg['State ParticipantID_missing'] = (~vs).astype(int)
+
                 missing_cols = (
                     [col + '_missing' for col in columns_to_check]
                     + ['ParticipantID_missing', 'State ParticipantID_missing']
                 )
+
                 pivot = subset_fg.groupby(category_col)[missing_cols].sum().reset_index()
                 total_r = pd.DataFrame(pivot[missing_cols].sum()).T
                 total_r[category_col] = 'Total'
                 pivot = pd.concat([pivot, total_r], ignore_index=True)
+
                 all_mf = df.copy()
-                pid_a  = all_mf['ParticipantID'].astype(str).str.strip()
+                pid_a = all_mf['ParticipantID'].astype(str).str.strip()
                 spid_a = all_mf['State ParticipantID'].astype(str).str.strip()
                 vpa = pid_a.str.match(r'^[12]\d{8}$')
                 vsa = spid_a.str.match(r'^\d{10}$')
+
                 for col in columns_to_check:
                     cleaned = all_mf[col].astype(str).str.strip()
                     nem = cleaned.str.lower() == 'not entered'
@@ -194,21 +212,27 @@ if st.button("🚀 Generate Report", disabled=not all_uploaded, type="primary", 
                         all_mf[col + '_missing'] = ((~vg) | nem).astype(int)
                     else:
                         all_mf[col + '_missing'] = (all_mf[col].isna() | nem).astype(int)
-                all_mf['ParticipantID_missing']       = (~vpa).astype(int)
+
+                all_mf['ParticipantID_missing'] = (~vpa).astype(int)
                 all_mf['State ParticipantID_missing'] = (~vsa).astype(int)
+
                 dob_parsed = pd.to_datetime(all_mf['Date Of Birth'], errors='coerce')
                 all_mf['DOB_too_young'] = ((dob_parsed.dt.year > 2023) | (dob_parsed.dt.year < 2004)).astype(int)
+
                 flag_cols2 = [col + '_missing' for col in columns_to_check] + ['ParticipantID_missing', 'DOB_too_young']
                 total_missing_rows = all_mf[all_mf[flag_cols2].sum(axis=1) > 0].copy()
                 young_dob_rows = all_mf[all_mf['DOB_too_young'] == 1].copy()
+
                 dob_young_counts = all_mf.groupby(category_col)['DOB_too_young'].sum()
                 pivot = pivot.set_index('Site')
                 pivot['Date Of Birth_missing'] += pivot.index.map(dob_young_counts).fillna(0).astype(int)
                 pivot = pivot.reset_index()
+
                 pivot = pivot.rename(columns={
                     'Date Of Birth_missing': 'DOB_missing',
                     'State ParticipantID_missing': '10digit_State ParticipantID_missing'
                 })[['Site', 'DOB_missing', 'ParticipantID_missing', 'Grade Level_missing', 'Gender_missing', '10digit_State ParticipantID_missing']]
+
                 return pivot, missing_site_rows, total_missing_rows, flag_cols2, young_dob_rows
 
             columns_of_interest = ['Date Of Birth', 'Grade Level', 'Gender']
@@ -235,9 +259,12 @@ if st.button("🚀 Generate Report", disabled=not all_uploaded, type="primary", 
             df_enr.rename(columns={'Enrolled Count': 'Enrolled Participant'}, inplace=True)
 
             def extract_average(val):
-                if pd.isna(val): return np.nan
-                try: return float(str(val).replace('Average:', '').strip())
-                except: return np.nan
+                if pd.isna(val):
+                    return np.nan
+                try:
+                    return float(str(val).replace('Average:', '').strip())
+                except:
+                    return np.nan
 
             df_att = df_att[['Site', 'Activity', 'Session', 'Total']].copy()
             df_att['Total'] = df_att['Total'].apply(extract_average)
@@ -247,12 +274,21 @@ if st.button("🚀 Generate Report", disabled=not all_uploaded, type="primary", 
                 s for s in df_act['Site'].dropna().unique()
                 if str(s).strip() != '' and not str(s).startswith('Total') and not str(s).startswith('Average')
             ]
+
             site_tables = {}
             for site in sites:
-                m = pd.merge(df_act[df_act['Site'] == site], df_enr[df_enr['Site'] == site],
-                             on=['Site', 'Activity', 'Session'], how='outer')
-                m = pd.merge(m, df_att[df_att['Site'] == site],
-                             on=['Site', 'Activity', 'Session'], how='outer')
+                m = pd.merge(
+                    df_act[df_act['Site'] == site],
+                    df_enr[df_enr['Site'] == site],
+                    on=['Site', 'Activity', 'Session'],
+                    how='outer'
+                )
+                m = pd.merge(
+                    m,
+                    df_att[df_att['Site'] == site],
+                    on=['Site', 'Activity', 'Session'],
+                    how='outer'
+                )
                 m = m[~(m['Session Start Date'] >= today)].drop(columns=['Session Start Date'], errors='ignore')
                 m = m.fillna("-")
                 m = m.sort_values(['Session']).reset_index(drop=True)
@@ -262,29 +298,40 @@ if st.button("🚀 Generate Report", disabled=not all_uploaded, type="primary", 
             st.write("🌈 Writing Excel report…")
             hide_cols = {'Race/Ethnicity', 'English Learner Status', 'Lunch Status', 'Special Education Status', 'IDEA Disability Type'}
             output_buffer = io.BytesIO()
+
             with pd.ExcelWriter(output_buffer, engine='openpyxl') as writer:
                 df_totals.to_excel(writer, sheet_name='Student Summary Statistics', index=False)
                 result.to_excel(writer, sheet_name='Family Component Summary', index=False)
                 missing_summary.to_excel(writer, sheet_name='Missing student & staff Summary', index=False)
                 missing_site_rows.to_excel(writer, sheet_name="Pull out - Missing Site Info", index=False)
-                display_cols = [c for c in total_missing_rows.columns if not c.endswith('_missing') and c != 'DOB_too_young' and c not in hide_cols]
+
+                display_cols = [
+                    c for c in total_missing_rows.columns
+                    if not c.endswith('_missing') and c != 'DOB_too_young' and c not in hide_cols
+                ]
+
                 for site, group in total_missing_rows.groupby('Site'):
-                    safe_name = ('Missing - ' + str(site))[:31]
+                    safe_name = clean_sheet_name('Missing - ' + str(site), fallback='Missing Site')
                     group[display_cols].to_excel(writer, sheet_name=safe_name, index=False)
+
                 young_dc = [c for c in young_dob_rows.columns if not c.endswith('_missing') and c != 'DOB_too_young']
                 young_dob_rows[young_dc].to_excel(writer, sheet_name='Pull out - Young DOB', index=False)
+
                 for site_name, final_df in site_tables.items():
-                    safe = str(site_name)[:31].replace(':', '').replace('/', '').replace('\\', '').replace('?', '').replace('*', '')
+                    safe = clean_sheet_name(site_name, fallback='Site')
                     final_df.to_excel(writer, sheet_name=safe, index=False)
 
             # ── Apply highlights ──────────────────────────────────────────────
             output_buffer.seek(0)
             wb = load_workbook(output_buffer)
-            red_fill  = PatternFill('solid', start_color='FF9999', end_color='FF9999')
+
+            red_fill = PatternFill('solid', start_color='FF9999', end_color='FF9999')
             blue_fill = PatternFill('solid', start_color='9999FF', end_color='9999FF')
+
             flag_to_original = {fc: fc[:-len('_missing')] for fc in flag_cols if fc.endswith('_missing')}
+
             for site, group in total_missing_rows.groupby('Site'):
-                sheet_name = ('Missing - ' + str(site))[:31]
+                sheet_name = clean_sheet_name('Missing - ' + str(site), fallback='Missing Site')
                 if sheet_name not in wb.sheetnames:
                     continue
                 ws = wb[sheet_name]
@@ -293,6 +340,7 @@ if st.button("🚀 Generate Report", disabled=not all_uploaded, type="primary", 
                     for flag_col, orig_col in flag_to_original.items():
                         if orig_col in header and row.get(flag_col, 0) == 1:
                             ws.cell(row=row_idx, column=header[orig_col]).fill = red_fill
+
             ws2 = wb['Pull out - Young DOB']
             header2 = {cell.value: cell.column for cell in ws2[1]}
             if 'Date Of Birth' in header2:
@@ -303,7 +351,7 @@ if st.button("🚀 Generate Report", disabled=not all_uploaded, type="primary", 
             # ── Highlight missing cells in site summary sheets ────────────────
             site_numeric_cols = ['Days Scheduled', 'Enrolled Participant', 'Average Daily Attendance']
             for site_name in site_tables:
-                safe = str(site_name)[:31].replace(':', '').replace('/', '').replace('\\', '').replace('?', '').replace('*', '')
+                safe = clean_sheet_name(site_name, fallback='Site')
                 if safe not in wb.sheetnames:
                     continue
                 ws_site = wb[safe]
@@ -318,6 +366,7 @@ if st.button("🚀 Generate Report", disabled=not all_uploaded, type="primary", 
 
             # ── Copy raw sheets from source files ─────────────────────────────
             st.write("📋 Copying source sheets…")
+
             def copy_sheet(src_ws, dest_wb, dest_name, skip_rows=0):
                 dest_ws = dest_wb.create_sheet(title=dest_name)
                 for row in src_ws.iter_rows(min_row=skip_rows + 1):
@@ -330,19 +379,22 @@ if st.button("🚀 Generate Report", disabled=not all_uploaded, type="primary", 
                             dest_cell.fill = copy(cell.fill)
                             dest_cell.number_format = cell.number_format
                             dest_cell.alignment = copy(cell.alignment)
+
                 for key, dim in src_ws.column_dimensions.items():
                     dest_ws.column_dimensions[key].width = dim.width
                     dest_ws.column_dimensions[key].hidden = dim.hidden
+
                 for key, dim in src_ws.row_dimensions.items():
                     if dim.index > skip_rows:
                         dest_ws.row_dimensions[dim.index - skip_rows].height = dim.height
                         dest_ws.row_dimensions[dim.index - skip_rows].hidden = dim.hidden
 
             students_wb_src = load_workbook(io.BytesIO(students_bytes))
-            adults_wb_src   = load_workbook(io.BytesIO(adults_bytes))
+            adults_wb_src = load_workbook(io.BytesIO(adults_bytes))
+
             copy_sheet(students_wb_src.worksheets[1], wb, 'Students - Participants By Hour', skip_rows=4)
-            copy_sheet(adults_wb_src.worksheets[1],   wb, 'Adults - Participants By Hour',   skip_rows=4)
-            copy_sheet(students_wb_src.worksheets[4], wb, 'Participant Demographics',         skip_rows=3)
+            copy_sheet(adults_wb_src.worksheets[1], wb, 'Adults - Participants By Hour', skip_rows=4)
+            copy_sheet(students_wb_src.worksheets[4], wb, 'Participant Demographics', skip_rows=3)
 
             # ── Apply Arial Narrow 10pt font to all cells ─────────────────────
             arial_narrow = Font(name='Arial Narrow', size=10)
