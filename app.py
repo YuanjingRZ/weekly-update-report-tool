@@ -419,7 +419,7 @@ if st.button("🚀 Generate Report", disabled=not all_uploaded, type="primary", 
 if st.session_state.get("report_ready"):
     safe_institution = institution_name.strip().replace(' ', '_') or 'Institution'
     today_str = date.today().strftime('%Y%m%d')
-    output_filename = f"{today_str}_weeklyupdates_{safe_institution}.xlsx"
+    output_filename = f"{today_str}_{safe_institution}_WeeklyUpdates.xlsx"
     st.success("🎉 Your report is ready!")
     st.download_button(
         label=f"⬇️ Download {output_filename}",
