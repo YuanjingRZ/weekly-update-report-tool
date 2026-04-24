@@ -246,7 +246,10 @@ if st.button("🚀 Generate Report", disabled=not all_uploaded, type="primary", 
             all_io.seek(0)
             df_enr = pd.read_excel(all_io, sheet_name=5, skiprows=2)  # [5] Session Enrollment by Session
             all_io.seek(0)
-            df_att = pd.read_excel(all_io, sheet_name=6, skiprows=4)  # [6] Daily Activity Attendance Summa
+            # df_att = pd.read_excel(all_io, sheet_name=6, skiprows=4)  # [6] Daily Activity Attendance Summa
+            df_att = pd.read_excel(all_io, sheet_name=6)
+            df_att.columns = df_att.iloc[3]   # adjust index if needed
+            df_att = df_att.iloc[4:].reset_index(drop=True)
 
             cols_act = ['Site', 'Activity', 'Session', 'Days Scheduled', 'Session Start Date']
             df_act = df_act[cols_act].copy()
